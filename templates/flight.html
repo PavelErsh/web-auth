@@ -312,6 +312,7 @@
             font-weight: bold;
         }
     </style>
+    
 </head>
 <body>
     <div class="form-container">
@@ -385,7 +386,7 @@
                         <option value="Постоплата">Постоплата</option>
                     </select>
                     <label for="client_source">Источник клиента:</label>
-                    <select class="client_source" name="client_source" required>
+                    <select class="client_source" id="client_source" name="client_source" required>
                         <option value="" disabled selected>Выберите источник</option>
                         <option value="Отели">Отели</option>
                         <option value="Интернет">Интернет</option>
@@ -394,6 +395,20 @@
                         <option value="Местный спрос">Местный спрос</option>
                         <option value="Инфо офис">Инфо офис</option>
                     </select>
+                    <div class="hotel_select_container">
+                        <label for="hotel_list">Выберите отель:</label>
+                        <select id="hotel_list" name="hotel_list" class="hotel_list">
+                            <option value="" disabled selected>Выберите отель</option>
+                            <option value="Alean">Alean</option>
+                            <option value="Gorski">Gorski</option>
+                            <option value="Grand Snow">Grand Snow</option>
+                            <option value="Premium Village">Premium Village</option>
+                            <option value="Артау">Артау</option>
+                            <option value="Ski Resort">Ski Resort</option>
+                            <option value="White peak">White peak</option>
+
+                        </select>
+                    </div>
                     <label for="comment">Комментарий:</label>
                     <textarea class="comment" name="comment" placeholder="Введите комментарий"></textarea>
                     <div class="form-cost">
@@ -416,7 +431,51 @@
             <button type="button" onclick="submitForm()" id="submitButton">Отправить</button>
         </form>
     </div>
+    <style>
+        .hotel_select_container {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.4s ease;
+            margin-top: 0;
+        }
 
+        .hotel_select_container.show {
+            max-height: 100px; /* или больше, если нужно */
+            opacity: 1;
+        }
+
+            </style>
+            <script>
+                
+                function setupClientSourceHandlers(context = document) {
+                    const selects = context.querySelectorAll ? context.querySelectorAll('.client_source') : [];
+
+                    selects.forEach(select => {
+                        const container = select.closest('.duplicated-form').querySelector('.hotel_select_container');
+                    
+                        function toggleHotelSelect() {
+                            if (select.value === 'Отели') {
+                                container.classList.add('show');
+                            } else {
+                                container.classList.remove('show');
+                            }
+                        }
+                    
+                        // При первом запуске
+                        toggleHotelSelect();
+                    
+                        // При изменении
+                        select.addEventListener('change', toggleHotelSelect);
+                    });
+                }
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            setupClientSourceHandlers();
+        });
+
+    </script>
+    
     <script>
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('date').value = today;
@@ -505,6 +564,7 @@
                 e.target.classList.contains('prepayment') ||
                 e.target.classList.contains('payment_type') ||
                 e.target.classList.contains('client_source') ||
+
                 e.target.classList.contains('discount')) {
                 updateCost();
             }
@@ -528,6 +588,7 @@
             const duplicatedForms = document.getElementById('duplicated-forms');
             const lastForm = duplicatedForms.lastElementChild.cloneNode(true);
 
+            // Сброс значений
             lastForm.querySelector('.equipment_type').value = "";
             lastForm.querySelector('.prepayment_amount').value = "";
             lastForm.querySelector('.prepayment').checked = false;
@@ -536,8 +597,11 @@
             lastForm.querySelector('.comment').value = "";
             lastForm.querySelector('.single-cost').textContent = 0;
             lastForm.querySelector('.prepayment-container').style.display = 'none';
-
             lastForm.querySelector('.discount').value = 0;
+
+            // Скрываем селектор отелей в новой форме
+            lastForm.querySelector('.hotel_select_container').classList.remove('show');
+            lastForm.querySelector('#hotel_list').value = "";
 
             const deleteButton = document.createElement('button');
             deleteButton.className = 'delete-button';
@@ -551,10 +615,16 @@
             lastForm.querySelector('.prepayment').addEventListener('change', function() {
                 togglePrepaymentAmount(this);
             });
-
+        
             duplicatedForms.appendChild(lastForm);
+            
+            // Инициализируем обработчики для новой формы
+            setupClientSourceHandlers(lastForm);
+            
             updateCost();
         }
+
+        
 
         function duplicateForm() {
             const duplicatedForms = document.getElementById('duplicated-forms');
@@ -566,9 +636,12 @@
                 prepayment: duplicatedForms.lastElementChild.querySelector('.prepayment').checked,
                 payment_type: duplicatedForms.lastElementChild.querySelector('.payment_type').value,
                 client_source: duplicatedForms.lastElementChild.querySelector('.client_source').value,
-                comment: duplicatedForms.lastElementChild.querySelector('.comment').value
+                comment: duplicatedForms.lastElementChild.querySelector('.comment').value,
+                hotel_list: duplicatedForms.lastElementChild.querySelector('.hotel_select_container.show') 
+                    ? duplicatedForms.lastElementChild.querySelector('#hotel_list').value 
+                    : ""
             };
-
+        
             lastForm.querySelector('.equipment_type').value = lastFormData.equipment_type;
             lastForm.querySelector('.prepayment_amount').value = lastFormData.prepayment_amount;
             lastForm.querySelector('.prepayment').checked = lastFormData.prepayment;
@@ -576,13 +649,18 @@
             lastForm.querySelector('.client_source').value = lastFormData.client_source;
             lastForm.querySelector('.comment').value = lastFormData.comment;
 
+            // Устанавливаем значение отеля, если оно было
+            if (lastFormData.hotel_list) {
+                lastForm.querySelector('#hotel_list').value = lastFormData.hotel_list;
+            }
+        
             const prepaymentContainer = lastForm.querySelector('.prepayment-container');
             if (lastFormData.prepayment) {
                 prepaymentContainer.style.display = 'block';
             } else {
                 prepaymentContainer.style.display = 'none';
             }
-
+        
             const deleteButton = document.createElement('button');
             deleteButton.className = 'delete-button';
             deleteButton.innerHTML = '×';
@@ -590,16 +668,19 @@
                 deleteForm(this);
             };
             lastForm.appendChild(deleteButton);
-
+        
             // Добавляем обработчик события для чекбокса предоплаты
             lastForm.querySelector('.prepayment').addEventListener('change', function() {
                 togglePrepaymentAmount(this);
             });
-
+        
             duplicatedForms.appendChild(lastForm);
+
+            // Инициализируем обработчики для новой формы
+            setupClientSourceHandlers(lastForm);
+
             updateCost();
         }
-
         function deleteForm(button) {
             const form = button.closest('.duplicated-form');
             const duplicatedForms = document.getElementById('duplicated-forms');
@@ -625,6 +706,7 @@
                     prepayment: form.querySelector(".prepayment").checked,
                     payment_type: form.querySelector(".payment_type").value,
                     client_source: form.querySelector(".client_source").value,
+                    hotel_list: form.querySelector("#hotel_list").value || null, // Добавлено это поле
                     comment: form.querySelector(".comment").value,
                     discount: parseFloat(form.querySelector('.discount').value) || 0,
                     cost: parseFloat(form.querySelector(".hidden-cost").value) || 0,

@@ -50,6 +50,7 @@ class EquipmentForm(BaseModel):
     prepayment: bool
     payment_type: str
     client_source: str
+    hotel_list: Optional[str] = None 
     comment: str
     discount: float
     cost: float  # Добавляем поле для стоимости
@@ -128,6 +129,7 @@ async def send_telegram_message(user_id: int, message: str):
     return response.json()
 
 
+
 @router.post("/submit_income")
 async def submit_income(data: IncomeData, db: Session = Depends(get_db)):
     user_id = data.user_id
@@ -138,6 +140,10 @@ async def submit_income(data: IncomeData, db: Session = Depends(get_db)):
     db.commit()
 
     for equipment in data.equipment_forms:
+        # Формируем источник клиента
+        client_source = equipment.client_source
+        if equipment.hotel_list:  # Если есть отель, добавляем его к источнику
+            client_source += f" - {equipment.hotel_list}"
         equipment_message = (
             f"Дата: {data.date}\n"
             f"Номер рейса: {data.flight_number}\n"
@@ -146,10 +152,10 @@ async def submit_income(data: IncomeData, db: Session = Depends(get_db)):
             f"<b>Техника:</b>\n"
             f"Машина: {equipment.equipment_name}\n"
             f"Сумма предоплаты: {equipment.prepayment_amount}\n"
-            f"Скидка:  {equipment.discount}\n"
+            f"Скидка: {equipment.discount}\n"
             f"Предоплата: {'Да' if equipment.prepayment else 'Нет'}\n"
             f"Тип оплаты: {equipment.payment_type}\n"
-            f"Источник клиента: {equipment.client_source}\n"
+            f"Источник клиента: {client_source}\n"  
             f"Комментарий: {equipment.comment}\n"
             f"<b>Стоимость: {equipment.cost} руб.</b>\n"
         )

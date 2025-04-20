@@ -7,3 +7,4 @@ venv_name
 __pycache__/
 idea/
 backup.sql
+../venv
